@@ -3,6 +3,7 @@ package com.example.myapplicationfinal
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.Toast
@@ -64,13 +65,14 @@ fun VideoPlayerScreen(
     var videoUrl by remember { mutableStateOf("") }
     var isPlaying by remember { mutableStateOf(false) }
     
-    // URLs de ejemplo predefinidas
-    val sampleVideos = listOf(
-        "Video Local" to "android.resource://${context.packageName}/${R.raw.sample_video}",
-        "Big Buck Bunny" to "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-        "Elephant Dream" to "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-        "For Bigger Blazes" to "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
-    )
+                // URLs de ejemplo predefinidas (videos que funcionan realmente)
+            val sampleVideos = listOf(
+                "Video Local" to "android.resource://${context.packageName}/${R.raw.sample_video}",
+                "Big Buck Bunny (MP4)" to "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+                "Elephant Dream (MP4)" to "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+                "For Bigger Blazes (MP4)" to "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+                "Sintel (MP4)" to "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"
+            )
 
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().also { player ->
@@ -109,11 +111,37 @@ fun VideoPlayerScreen(
             OutlinedTextField(
                 value = videoUrl,
                 onValueChange = { videoUrl = it },
-                label = { Text("URL del video (YouTube, MP4, etc.)") },
-                placeholder = { Text("https://www.youtube.com/watch?v=...") },
+                label = { Text("URL del video (MP4, WebM, etc.)") },
+                placeholder = { Text("https://ejemplo.com/video.mp4") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
+            
+            // Información sobre YouTube
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp)
+                ) {
+                    Text(
+                        text = "ℹ️ Información sobre YouTube",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "• Las URLs de YouTube se abrirán en la app oficial\n" +
+                                "• Para videos directos, usa URLs de archivos MP4/WebM\n" +
+                                "• Los videos de ejemplo funcionan perfectamente",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
 
             // Botones de videos predefinidos
             Text(
@@ -135,39 +163,45 @@ fun VideoPlayerScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Button(
-                    onClick = {
-                        if (videoUrl.isNotEmpty()) {
-                            try {
-                                val uri = if (videoUrl.startsWith("http")) {
-                                    // Para URLs web, incluyendo YouTube
+                                    Button(
+                        onClick = {
+                            if (videoUrl.isNotEmpty()) {
+                                try {
+                                    // Verificar si es una URL de YouTube
                                     if (videoUrl.contains("youtube.com") || videoUrl.contains("youtu.be")) {
-                                        // Convertir URL de YouTube a formato directo si es posible
-                                        videoUrl.toUri()
-                                    } else {
-                                        videoUrl.toUri()
+                                        // Para YouTube, mostrar mensaje explicativo y abrir en la app
+                                        Toast.makeText(
+                                            context, 
+                                            "YouTube requiere la app oficial. Abriendo en YouTube...", 
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                        
+                                        // Abrir directamente en YouTube
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(videoUrl))
+                                        context.startActivity(intent)
+                                        return@Button
                                     }
-                                } else {
-                                    videoUrl.toUri()
+                                    
+                                    // Para otras URLs, intentar reproducir
+                                    val uri = videoUrl.toUri()
+                                    val mediaItem = MediaItem.fromUri(uri)
+                                    exoPlayer.setMediaItem(mediaItem)
+                                    exoPlayer.prepare()
+                                    exoPlayer.play()
+                                    isPlaying = true
+                                    Toast.makeText(context, "Reproduciendo video...", Toast.LENGTH_SHORT).show()
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Error al reproducir: ${e.message}", Toast.LENGTH_LONG).show()
+                                    Log.e("VideoActivity", "Error al reproducir video", e)
                                 }
-                                
-                                val mediaItem = MediaItem.fromUri(uri)
-                                exoPlayer.setMediaItem(mediaItem)
-                                exoPlayer.prepare()
-                                exoPlayer.play()
-                                isPlaying = true
-                                Toast.makeText(context, "Reproduciendo video...", Toast.LENGTH_SHORT).show()
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "Error al reproducir: ${e.message}", Toast.LENGTH_LONG).show()
+                            } else {
+                                Toast.makeText(context, "Por favor ingresa una URL", Toast.LENGTH_SHORT).show()
                             }
-                        } else {
-                            Toast.makeText(context, "Por favor ingresa una URL", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Reproducir")
-                }
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Reproducir")
+                    }
 
                 Button(
                     onClick = {
@@ -199,14 +233,34 @@ fun VideoPlayerScreen(
                         try {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(videoUrl))
                             context.startActivity(intent)
+                            Toast.makeText(context, "Abriendo en YouTube...", Toast.LENGTH_SHORT).show()
                         } catch (e: Exception) {
                             Toast.makeText(context, "No se pudo abrir YouTube", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
                 ) {
-                    Text("Abrir en YouTube")
+                    Text("🎬 Abrir en YouTube")
                 }
+            }
+            
+            // Botón de prueba para YouTube
+            Button(
+                onClick = {
+                    val testYouTubeUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(testYouTubeUrl))
+                        context.startActivity(intent)
+                        Toast.makeText(context, "Abriendo video de prueba en YouTube...", Toast.LENGTH_SHORT).show()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "No se pudo abrir YouTube", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+            ) {
+                Text("🧪 Probar YouTube (Video de Prueba)")
             }
 
             // Reproductor de video
