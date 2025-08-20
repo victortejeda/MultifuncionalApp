@@ -28,6 +28,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Nueva Activity para reproducir videos -->
+        <activity
+            android:name=".VideoActivity"
+            android:exported="false"
+            android:label="Reproductor de Video"
+            android:theme="@style/Theme.MyApplicationFinal" />
+
+        <!-- Nueva Activity para mostrar mensajes -->
+        <activity
+            android:name=".MessageActivity"
+            android:exported="false"
+            android:label="Mostrar Mensajes"
+            android:theme="@style/Theme.MyApplicationFinal" />
     </application>
 
 </manifest>

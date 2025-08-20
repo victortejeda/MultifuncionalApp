@@ -3,6 +3,7 @@ package com.example.myapplicationfinal
 import android.Manifest
 import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -108,6 +109,8 @@ fun WelcomeScreen(navController: NavController) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainMenuScreen(navController: NavController) {
+    val context = LocalContext.current
+    
     Scaffold(
         topBar = { TopAppBar(title = { Text("Menú Principal") }) }
     ) { innerPadding ->
@@ -118,8 +121,39 @@ fun MainMenuScreen(navController: NavController) {
         ) {
             Button(onClick = { navController.navigate("camera_screen") }, modifier = Modifier.fillMaxWidth()) { Text("1. Tomar Foto") }
             Button(onClick = { navController.navigate("gallery_screen") }, modifier = Modifier.fillMaxWidth()) { Text("2. Seleccionar Imagen de Galería") }
-            Button(onClick = { navController.navigate("video_screen") }, modifier = Modifier.fillMaxWidth()) { Text("3. Reproducir Video") }
-            Button(onClick = { navController.navigate("message_screen") }, modifier = Modifier.fillMaxWidth()) { Text("4. Mostrar Mensaje") }
+            Button(onClick = { navController.navigate("video_screen") }, modifier = Modifier.fillMaxWidth()) { Text("3. Reproducir Video (Compose)") }
+            Button(onClick = { navController.navigate("message_screen") }, modifier = Modifier.fillMaxWidth()) { Text("4. Mostrar Mensaje (Compose)") }
+            
+            // Nuevas activities separadas
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Activities Separadas:",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            
+            Button(
+                onClick = { 
+                    val intent = Intent(context, VideoActivity::class.java)
+                    context.startActivity(intent)
+                }, 
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+            ) { 
+                Text("5. Reproductor de Video (Activity)") 
+            }
+            
+            Button(
+                onClick = { 
+                    val intent = Intent(context, MessageActivity::class.java)
+                    context.startActivity(intent)
+                }, 
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+            ) { 
+                Text("6. Sistema de Mensajes (Activity)") 
+            }
         }
     }
 }
