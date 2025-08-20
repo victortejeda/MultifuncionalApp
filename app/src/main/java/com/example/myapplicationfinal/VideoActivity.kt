@@ -66,15 +66,7 @@ fun VideoPlayerScreen(
 ) {
     val context = LocalContext.current
     var videoUrl by remember { mutableStateOf("") }
-    var isYouTubeVideo by remember { mutableStateOf(false) }
     var isPlaying by remember { mutableStateOf(false) }
-    
-    // URLs de ejemplo predefinidas
-    val sampleVideos = listOf(
-        "Video Local" to "android.resource://${context.packageName}/${R.raw.sample_video}",
-        "Big Buck Bunny (MP4)" to "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-        "Elephant Dream (MP4)" to "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"
-    )
 
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().also { player ->
@@ -104,64 +96,26 @@ fun VideoPlayerScreen(
             // Campo de URL
             OutlinedTextField(
                 value = videoUrl,
-                onValueChange = { 
-                    videoUrl = it
-                    isYouTubeVideo = it.contains("youtube.com") || it.contains("youtu.be")
-                },
-                label = { Text("URL del video (YouTube, MP4, etc.)") },
-                placeholder = { Text("https://www.youtube.com/watch?v=... o https://ejemplo.com/video.mp4") },
+                onValueChange = { videoUrl = it },
+                label = { Text("URL del video") },
+                placeholder = { Text("https://www.youtube.com/watch?v=...") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
-
-            // Botones de videos de ejemplo
-            Text(
-                text = "Videos de ejemplo:",
-                fontWeight = FontWeight.Medium
-            )
-
-            sampleVideos.forEach { (name, url) ->
-                Button(
-                    onClick = { 
-                        videoUrl = url
-                        isYouTubeVideo = false
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(name)
-                }
-            }
 
             // Botón de reproducción
             Button(
                 onClick = {
                     if (videoUrl.isNotEmpty()) {
-                        if (isYouTubeVideo) {
-                            // Para YouTube, usar WebView integrado
-                            isPlaying = true
-                            Toast.makeText(context, "Reproduciendo video de YouTube...", Toast.LENGTH_SHORT).show()
-                        } else {
-                            // Para videos directos, usar ExoPlayer
-                            try {
-                                val uri = videoUrl.toUri()
-                                val mediaItem = MediaItem.fromUri(uri)
-                                exoPlayer.setMediaItem(mediaItem)
-                                exoPlayer.prepare()
-                                exoPlayer.play()
-                                isPlaying = true
-                                Toast.makeText(context, "Reproduciendo video...", Toast.LENGTH_SHORT).show()
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "Error al reproducir: ${e.message}", Toast.LENGTH_LONG).show()
-                                Log.e("VideoActivity", "Error al reproducir video", e)
-                            }
-                        }
+                        isPlaying = true
+                        Toast.makeText(context, "Reproduciendo video...", Toast.LENGTH_SHORT).show()
                     } else {
                         Toast.makeText(context, "Por favor ingresa una URL", Toast.LENGTH_SHORT).show()
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Reproducir Video")
+                Text("Reproducir")
             }
 
             // Reproductor de video
@@ -170,61 +124,53 @@ fun VideoPlayerScreen(
                     .fillMaxWidth()
                     .weight(1f)
             ) {
-                if (isPlaying) {
-                    if (isYouTubeVideo) {
-                        // WebView para YouTube
-                        AndroidView(
-                            factory = { ctx ->
-                                WebView(ctx).apply {
-                                    settings.javaScriptEnabled = true
-                                    settings.mediaPlaybackRequiresUserGesture = false
-                                    settings.domStorageEnabled = true
-                                    webViewClient = object : WebViewClient() {
-                                        override fun onPageFinished(view: WebView?, url: String?) {
-                                            super.onPageFinished(view, url)
-                                        }
+                if (isPlaying && videoUrl.isNotEmpty()) {
+                    // WebView para todos los videos (YouTube y otros)
+                    AndroidView(
+                        factory = { ctx ->
+                            WebView(ctx).apply {
+                                settings.javaScriptEnabled = true
+                                settings.mediaPlaybackRequiresUserGesture = false
+                                settings.domStorageEnabled = true
+                                settings.loadWithOverviewMode = true
+                                settings.useWideViewPort = true
+                                
+                                webViewClient = object : WebViewClient() {
+                                    override fun onPageFinished(view: WebView?, url: String?) {
+                                        super.onPageFinished(view, url)
                                     }
-                                    
-                                    // Convertir URL de YouTube a formato embed
-                                    val embedUrl = videoUrl.replace("watch?v=", "embed/")
-                                    loadUrl(embedUrl)
-                                    
-                                    layoutParams = FrameLayout.LayoutParams(
-                                        ViewGroup.LayoutParams.MATCH_PARENT,
-                                        ViewGroup.LayoutParams.MATCH_PARENT
-                                    )
                                 }
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        // ExoPlayer para videos directos
-                        DisposableEffect(Unit) {
-                            onDispose {
-                                // El exoPlayer se libera en onDestroy de la Activity
+                                
+                                // Función para convertir cualquier URL de YouTube a formato embed
+                                val embedUrl = if (videoUrl.contains("youtube.com") || videoUrl.contains("youtu.be")) {
+                                    // Extraer solo el ID del video de YouTube
+                                    val videoId = extractYouTubeVideoId(videoUrl)
+                                    if (videoId != null) {
+                                        "https://www.youtube.com/embed/$videoId"
+                                    } else {
+                                        videoUrl
+                                    }
+                                } else {
+                                    videoUrl
+                                }
+                                
+                                loadUrl(embedUrl)
+                                
+                                layoutParams = FrameLayout.LayoutParams(
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                    ViewGroup.LayoutParams.MATCH_PARENT
+                                )
                             }
-                        }
-                        AndroidView(
-                            factory = { ctx ->
-                                PlayerView(ctx).apply {
-                                    player = exoPlayer
-                                    layoutParams = FrameLayout.LayoutParams(
-                                        ViewGroup.LayoutParams.MATCH_PARENT,
-                                        ViewGroup.LayoutParams.MATCH_PARENT
-                                    )
-                                    useController = true
-                                }
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
                 } else {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "Ingresa una URL y presiona 'Reproducir Video'",
+                            "Ingresa una URL y presiona 'Reproducir'",
                             fontSize = 16.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -233,5 +179,28 @@ fun VideoPlayerScreen(
                 }
             }
         }
+    }
+}
+
+// Función para extraer el ID del video de YouTube de cualquier formato de URL
+private fun extractYouTubeVideoId(url: String): String? {
+    return try {
+        when {
+            url.contains("youtube.com/watch") -> {
+                val regex = Regex("""[?&]v=([^&]+)""")
+                regex.find(url)?.groupValues?.get(1)
+            }
+            url.contains("youtu.be/") -> {
+                val regex = Regex("""youtu\.be/([^?&]+)""")
+                regex.find(url)?.groupValues?.get(1)
+            }
+            url.contains("youtube.com/embed/") -> {
+                val regex = Regex("""youtube\.com/embed/([^?&]+)""")
+                regex.find(url)?.groupValues?.get(1)
+            }
+            else -> null
+        }
+    } catch (e: Exception) {
+        null
     }
 }
