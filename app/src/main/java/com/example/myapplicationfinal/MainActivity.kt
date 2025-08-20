@@ -15,6 +15,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -130,9 +131,10 @@ fun CameraScreen(navController: NavController) {
     val lifecycleOwner = LocalLifecycleOwner.current
     var hasCameraPermission by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) }
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { granted -> hasCameraPermission = granted }
-    )
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted -> 
+        hasCameraPermission = granted 
+    }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     val imageCapture = remember { ImageCapture.Builder().build() }
 
@@ -182,9 +184,10 @@ fun CameraScreen(navController: NavController) {
 fun GalleryScreen(navController: NavController) {
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-        onResult = { uri -> imageUri = uri }
-    )
+        contract = ActivityResultContracts.GetContent()
+    ) { uri -> 
+        imageUri = uri 
+    }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("2. Galería") }, navigationIcon = { BackButton(navController) }) }
